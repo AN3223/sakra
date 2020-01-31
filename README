@@ -1,0 +1,90 @@
+sakra - swiss army knife rss aggregator
+
+SYNOPSIS:
+  sakra [-c] [FEEDGROUP]...
+
+DEPENDENCIES:
+  curl, sfeed
+
+-----
+WHY?
+-----
+
+I use RSS for watching YouTube, listening to podcasts, and keeping up on blogs.
+I could never find a single program that would handle all three of these needs
+for me so I wrote one myself.
+If you are someone struggling with the same issue, or someone who just wants a
+simple CLI RSS aggregator, I hope sakra can fill your needs well. If it can't,
+let me know why by opening an issue or by contacting me in some other fashion.
+
+-----------
+QUICKSTART
+-----------
+
+1. Make a file named ~/.sakra/<feedgroup>.feeds (where <feedgroup> is some
+   arbitrary name, i.e. "podcasts") and populate it with a newline-separated
+   list of URLs to fetch RSS feeds from. This defines a new "feedgroup" for
+   sakra to keep track of.
+2. Assuming you don't want to download the entire back catalog of everything in
+   the feedgroup, run the "sakra -c <feedgroup>" command (replace <feedgroup>
+   with the name of the feedgroup you defined on step #1) to tell sakra to
+   "catch up" on your feedgroup.
+3. In the future when you want to update your feeds (i.e. download podcasts or
+   whatever), run the "sakra" command and it will download each new item
+   (defaults to downloading the enclosure, falls back to downloading the link)
+   into $HOME/<feedgroup>/ (directory created automatically).
+
+Simple enough. You can use that quickstart guide to download both podcasts and
+web pages. But that's just using the default behavior, sakra is much more
+versatile than that, as you will see in the RC SCRIPTS section.
+
+sakra is likely to use a lot of CPU and I/O, so consider using sakra with
+ionice(1), renice(1), and/or nice(1), especially if you have a lot of feeds to
+pull from, and especially if you're running sakra from cron. Also take a look
+at SAKRAMAXJOBS below.
+
+-----------
+RC SCRIPTS
+-----------
+
+The handling of each item in each feed of a feedgroup may be overridden by the
+user. This is done via an "rc" script. An rc script is a simple executable
+(therefore language agnostic) which will be called each time a new feed item
+is processed. Information about the feed item is passed to the rc script via
+environment variables.
+
+The following environment variables are passed:
+  TIMESTAMP
+  TITLE
+  LINK
+  CONTENT
+  CONTENT_TYPE
+  GUID
+  AUTHOR
+  ENCLOSURE
+  FEEDGROUP
+
+All of these environment variables (with the exception of the FEEDGROUP, which
+is just a convenient way of getting the name of the feedgroup) correspond to
+attributes of the feed item (and therefore may be empty). The stdout, stderr,
+stdin of the script are currently unused. If the script exits with an error
+then sakra will skip the failed feed item and try to re-run the rc script on
+the failed feed item the next time sakra is invoked.
+
+--------------------
+OTHER CONFIGURATION
+--------------------
+
+The SAKRADIR environment variable may be used to change the default location of
+sakra's configuration directory, usually ~/.sakra
+
+SAKRAMAXJOBS can be used to increase/decrease the maximum number of concurrent
+jobs sakra will spawn. Defaults to 10.
+
+---------
+SEE ALSO
+---------
+
+castget https://github.com/mlj/castget
+greg https://github.com/manolomartinez/greg
+

@@ -1,0 +1,163 @@
+#!/bin/sh -e
+# shellcheck disable=SC2086
+
+config=${SAKRADIR:-$HOME/.sakra}
+mkdir -p "$config"
+tmpdir=$(mktemp -d)
+
+catchup=
+while getopts "c" o; do
+	case "$o" in
+		c) catchup=1;;
+		*) ;;
+	esac
+done
+shift $((OPTIND-1))
+
+# This runs in the same context as a user's rc script
+defaultrc() {(
+	if [ ! "$LINK" ] && [ ! "$ENCLOSURE" ]; then
+		exit
+	fi
+
+	target=${ENCLOSURE:-$LINK}
+
+	mkdir -p "$HOME/$FEEDGROUP"
+
+	# Add the file extension, only for enclosures
+	if [ "$ENCLOSURE" ]; then
+		# Grab everything after the final period
+		extension=${target##*.}
+
+		# Strip URL stuff out
+		extension=${extension%%\?*}
+		extension=${extension%%#*}
+
+		# Only add the period if we actually managed to get an extension
+		[ "$extension" ] && extension=".${extension}"
+	fi
+
+	# Sanitize the filename
+	filename=${TITLE}${extension}
+	filename=$(printf '%s\n' "$filename" | sed 's|/|\\|g')
+
+	curl -LSs -- "$target" > "$HOME/$FEEDGROUP/$filename"
+)}
+
+# $1: file containing sfeed's output for the current feed
+# $2: the state file for the current feed
+# $3: the rc file for the current feed
+handle_feed() {
+	# Repeatedly calling cut seems to be the most efficient way of
+	# handling this in POSIX shell. Please prove me wrong. Pretty sure
+	# read(1) can't be used since it can't handle missing fields.
+	while read -r line; do
+		# Skip old entries
+		GUID=$(printf '%s\n' "$line" | cut -f 6)
+		grep -Fxq "$GUID" < "$2" && continue
+
+		if [ "$catchup" ]; then
+			printf '%s\n' "$GUID" >> "$2"
+			continue
+		fi
+
+		waitforopening
+		(
+			TIMESTAMP=$(printf '%s\n' "$line" | cut -f 1)
+			TITLE=$(printf '%s\n' "$line" | cut -f 2)
+			LINK=$(printf '%s\n' "$line" | cut -f 3)
+			CONTENT=$(printf '%s\n' "$line" | cut -f 4)
+			CONTENT_TYPE=$(printf '%s\n' "$line" | cut -f 5)
+			AUTHOR=$(printf '%s\n' "$line" | cut -f 7)
+			ENCLOSURE=$(printf '%s\n' "$line" | cut -f 8)
+
+			export TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE
+
+			# Execute rc
+			if [ -x "$3" ]; then
+				"$3"
+			elif [ -f "$3" ]; then
+				echo "$3 exists but isn't executable" >&2
+				exit 1
+			else
+				defaultrc
+			fi
+
+			# Mark item as old
+			printf '%s\n' "$GUID" >> "$2"
+		) &
+	done < "$1"
+	wait
+}
+
+# Implements SAKRAMAXJOBS, should be called prior to spawning a new job
+waitforopening() {
+	maxjobs=${SAKRAMAXJOBS:-10}
+	children=$(jobs -p | wc -l)
+	if [ "$children" -ge "$maxjobs" ]; then
+		wait
+	fi
+}
+
+# Ensure temporary files are deleted and child processes are killed
+cleanup() {
+	children=$(jobs -p)
+	[ "$children" ] && kill $children
+
+	rm -rf "$tmpdir"
+
+	# if a child won't die then sakra won't die
+	wait
+}
+
+trap 'cleanup' EXIT HUP INT QUIT TERM
+
+for feeds in "$config"/*.feeds; do
+	basename=$(basename "$feeds")
+	export FEEDGROUP=${basename%.feeds}
+
+	# If the user supplied a limited set of feedgroups then skip
+	# feedgroups that aren't in that set
+	if [ "$*" ]; then
+		skip=1
+		for arg; do
+			if [ "$arg" = "$FEEDGROUP" ]; then
+				skip=
+			fi
+		done
+		[ "$skip" ] && continue
+	fi
+
+	waitforopening
+	(
+		rc=$config/${FEEDGROUP}rc
+		statedir=$config/${FEEDGROUP}.state
+		mkdir -p "$statedir"
+
+		while read -r feed; do
+			# Skip empty lines
+			[ ! "$feed" ] && continue
+
+			waitforopening
+			(
+				# Allow for comments after the URL
+				feed=$(printf '%s\n' "$feed" | cut -f 1 -d ' ')
+
+				md5=$(printf '%s\n' "$feed" | md5sum | cut -f 1 -d ' ')
+				state=$statedir/$md5
+				tmp=$tmpdir/$md5
+
+				# : >> is like touch(1) but builtin
+				: >> "$state"
+				: >> "$tmp"
+
+				curl -LSs -- "$feed" | sfeed > "$tmp"
+				handle_feed "$tmp" "$state" "$rc"
+				rm -f "$tmp"
+			) &
+		done < "$feeds"
+		wait
+	) &
+done
+wait
+
