@@ -71,6 +71,9 @@ stdin of the script are currently unused. If the script exits with an error
 then sakra will skip the failed feed item and try to re-run the rc script on
 the failed feed item the next time sakra is invoked.
 
+Example rc scripts can be found in the "examplerc" directory of this
+repository.
+
 --------------------
 OTHER CONFIGURATION
 --------------------
