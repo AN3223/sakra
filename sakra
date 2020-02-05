@@ -116,6 +116,11 @@ for feeds in "$config"/*.feeds; do
 	basename=$(basename "$feeds")
 	export FEEDGROUP=${basename%.feeds}
 
+	if [ "$FEEDGROUP" = '*' ]; then
+		echo 'No feedgroups defined, see the README for usage information' >&2
+		exit 1
+	fi
+
 	# If the user supplied a limited set of feedgroups then skip
 	# feedgroups that aren't in that set
 	if [ "$*" ]; then
