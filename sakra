@@ -26,20 +26,18 @@ defaultrc() {(
 
 	# Add the file extension, only for enclosures
 	if [ "$ENCLOSURE" ]; then
-		# Grab everything after the final period
-		extension=${target##*.}
+		path=${target##*/}
+		extension=${path##*.}
 
 		# Strip URL stuff out
 		extension=${extension%%\?*}
 		extension=${extension%%#*}
 
-		# Only add the period if we actually managed to get an extension
-		[ "$extension" ] && extension=".${extension}"
+		[ "$extension" ] && TITLE="${TITLE}.${extension}"
 	fi
 
 	# Sanitize the filename
-	filename=${TITLE}${extension}
-	filename=$(printf '%s\n' "$filename" | sed 's|/|\\|g')
+	filename=$(printf '%s\n' "$TITLE" | sed 's|/|\\|g')
 
 	curl -LSs -- "$target" > "$HOME/$FEEDGROUP/$filename"
 )}
