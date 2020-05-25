@@ -7,5 +7,6 @@
 [ ! "$LINK" ] && exit
 mkdir -p "$HOME/youtube"
 
-youtube-dl -q --no-warnings -o "$HOME/youtube/%(uploader)s - %(title)s.%(ext)s" "$LINK"
+template='$HOME/youtube/%(uploader)s - %(title)s.%(ext)s'
+youtube-dl -q --no-warnings --no-mtime -o "$template" "$LINK"
 
