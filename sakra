@@ -100,7 +100,7 @@ waitforopening() {
 # Ensure temporary files are deleted and child processes are killed
 cleanup() {
 	children=$(jobs -p)
-	[ "$children" ] && kill $children
+	[ "$children" ] && kill $children || :
 
 	rm -rf "$tmpdir"
 
