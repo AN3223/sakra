@@ -17,7 +17,7 @@ shift $((OPTIND-1))
 # This runs in the same context as a user's rc script
 defaultrc() {(
 	if [ ! "$LINK" ] && [ ! "$ENCLOSURE" ]; then
-		exit
+		exit 0
 	fi
 
 	target=${ENCLOSURE:-$LINK}
