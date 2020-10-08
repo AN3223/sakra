@@ -59,53 +59,34 @@ handle_feed() {
 			continue
 		fi
 
-		waitforopening
-		(
-			TIMESTAMP=$(printf '%s\n' "$line" | cut -f 1)
-			TITLE=$(printf '%s\n' "$line" | cut -f 2)
-			LINK=$(printf '%s\n' "$line" | cut -f 3)
-			CONTENT=$(printf '%s\n' "$line" | cut -f 4)
-			CONTENT_TYPE=$(printf '%s\n' "$line" | cut -f 5)
-			AUTHOR=$(printf '%s\n' "$line" | cut -f 7)
-			ENCLOSURE=$(printf '%s\n' "$line" | cut -f 8)
+		TIMESTAMP=$(printf '%s\n' "$line" | cut -f 1)
+		TITLE=$(printf '%s\n' "$line" | cut -f 2)
+		LINK=$(printf '%s\n' "$line" | cut -f 3)
+		CONTENT=$(printf '%s\n' "$line" | cut -f 4)
+		CONTENT_TYPE=$(printf '%s\n' "$line" | cut -f 5)
+		AUTHOR=$(printf '%s\n' "$line" | cut -f 7)
+		ENCLOSURE=$(printf '%s\n' "$line" | cut -f 8)
 
-			export TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE
+		export TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE
 
-			# Execute rc
-			if [ -x "$3" ]; then
-				"$3"
-			elif [ -f "$3" ]; then
-				echo "$3 exists but isn't executable" >&2
-				exit 1
-			else
-				defaultrc
-			fi
+		# Execute rc
+		if [ -x "$3" ]; then
+			"$3"
+		elif [ -f "$3" ]; then
+			echo "$3 exists but isn't executable" >&2
+			exit 1
+		else
+			defaultrc
+		fi
 
-			# Mark item as old
-			printf '%s\n' "$GUID" >> "$2"
-		) &
+		# Mark item as old
+		printf '%s\n' "$GUID" >> "$2"
 	done < "$1"
-	wait
 }
 
-# Implements SAKRAMAXJOBS, should be called prior to spawning a new job
-waitforopening() {
-	maxjobs=${SAKRAMAXJOBS:-10}
-	children=$(jobs -p | wc -l)
-	if [ "$children" -ge "$maxjobs" ]; then
-		wait
-	fi
-}
-
-# Ensure temporary files are deleted and child processes are killed
+# Ensure temporary files are deleted
 cleanup() {
-	children=$(jobs -p)
-	[ "$children" ] && kill $children || :
-
 	rm -rf "$tmpdir"
-
-	# if a child won't die then sakra won't die
-	wait
 }
 
 trap 'cleanup' EXIT HUP INT QUIT TERM
@@ -131,36 +112,28 @@ for feeds in "$config"/*.feeds; do
 		[ "$skip" ] && continue
 	fi
 
-	waitforopening
-	(
-		rc=$config/${FEEDGROUP}rc
-		statedir=$config/${FEEDGROUP}.state
-		mkdir -p "$statedir"
+	rc=$config/${FEEDGROUP}rc
+	statedir=$config/${FEEDGROUP}.state
+	mkdir -p "$statedir"
 
-		while read -r feed; do
-			# Skip empty lines
-			[ ! "$feed" ] && continue
+	while read -r feed; do
+		# Skip empty lines
+		[ ! "$feed" ] && continue
 
-			waitforopening
-			(
-				# Allow for comments after the URL
-				feed=$(printf '%s\n' "$feed" | cut -f 1 -d ' ')
+		# Allow for comments after the URL
+		feed=$(printf '%s\n' "$feed" | cut -f 1 -d ' ')
 
-				md5=$(printf '%s\n' "$feed" | md5sum | cut -f 1 -d ' ')
-				state=$statedir/$md5
-				tmp=$tmpdir/$md5
+		md5=$(printf '%s\n' "$feed" | md5sum | cut -f 1 -d ' ')
+		state=$statedir/$md5
+		tmp=$tmpdir/$md5
 
-				# : >> is like touch(1) but builtin
-				: >> "$state"
-				: >> "$tmp"
+		# : >> is like touch(1) but builtin
+		: >> "$state"
+		: >> "$tmp"
 
-				curl -LSs -- "$feed" | sfeed > "$tmp"
-				handle_feed "$tmp" "$state" "$rc"
-				rm -f "$tmp"
-			) &
-		done < "$feeds"
-		wait
-	) &
+		curl -LSs -- "$feed" | sfeed > "$tmp"
+		handle_feed "$tmp" "$state" "$rc"
+		rm -f "$tmp"
+	done < "$feeds"
 done
-wait
 

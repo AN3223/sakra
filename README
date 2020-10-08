@@ -38,11 +38,6 @@ Simple enough. You can use that quickstart guide to download both podcasts and
 web pages. But that's just using the default behavior, sakra is much more
 versatile than that, as you will see in the RC SCRIPTS section.
 
-sakra is likely to use a lot of CPU and I/O, so consider using sakra with
-ionice(1), renice(1), and/or nice(1), especially if you have a lot of feeds to
-pull from, and especially if you're running sakra from cron. Also take a look
-at SAKRAMAXJOBS below.
-
 -----------
 RC SCRIPTS
 -----------
@@ -80,9 +75,6 @@ OTHER CONFIGURATION
 
 The SAKRADIR environment variable may be used to change the default location of
 sakra's configuration directory, usually ~/.sakra
-
-SAKRAMAXJOBS can be used to increase/decrease the maximum number of concurrent
-jobs sakra will spawn. Defaults to 10.
 
 ---------
 SEE ALSO
