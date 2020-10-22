@@ -38,7 +38,7 @@ defaultrc() {(
 	# Sanitize the filename
 	filename=$(printf '%s\n' "$TITLE" | sed 's|/|\\|g')
 
-	curl -LSs -- "$target" > "$HOME/$FEEDGROUP/$filename"
+	curl -LSsf -- "$target" > "$HOME/$FEEDGROUP/$filename"
 )}
 
 # stdin: the output from sfeed
@@ -121,7 +121,7 @@ for feeds in "$config"/*.feeds; do
 		# : >> is like touch(1) but builtin
 		: >> "$state"
 
-		curl -LSs -- "$feed" | sfeed | handle_feed "$state" "$rc"
+		curl -LSsf -- "$feed" | sfeed | handle_feed "$state" "$rc"
 	done < "$feeds"
 done
 
