@@ -5,7 +5,7 @@ config=${SAKRADIR:-$HOME/.sakra}
 mkdir -p "$config"
 tmpdir=$(mktemp -d)
 
-catchup=
+unset -v catchup
 while getopts "c" o; do
 	case "$o" in
 		c) catchup=1;;
