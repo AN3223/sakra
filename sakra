@@ -1,8 +1,10 @@
 #!/bin/sh -e
-# shellcheck disable=SC2086
+# shellcheck disable=SC2086,SC1003
 
-config=${SAKRADIR:-$HOME/.sakra}
-mkdir -p "$config"
+mkdir -p "${SAKRADIR:=${HOME:?}/.sakra}"
+cd "$SAKRADIR"
+
+TAB=$(printf '\t')
 
 unset -v catchup
 while getopts "c" o; do
@@ -14,14 +16,14 @@ done
 shift $((OPTIND-1))
 
 # This runs in the same context as a user's rc script
-defaultrc() {(
+defaultrc() {
 	if [ ! "$LINK" ] && [ ! "$ENCLOSURE" ]; then
 		exit 0
 	fi
 
 	target=${ENCLOSURE:-$LINK}
 
-	mkdir -p "$HOME/$FEEDGROUP"
+	mkdir -p "${HOME:?}/$FEEDGROUP"
 
 	# Add the file extension, only for enclosures
 	if [ "$ENCLOSURE" ]; then
@@ -30,98 +32,94 @@ defaultrc() {(
 
 		# Strip URL stuff out
 		extension=${extension%%\?*}
-		extension=${extension%%#*}
+		extension=${extension%%\#*}
 
 		[ "$extension" ] && TITLE="${TITLE}.${extension}"
 	fi
 
 	# Sanitize the filename
-	filename=$(printf '%s\n' "$TITLE" | sed 's|/|\\|g')
+	filename=$(tr '/' '\\') <<-EOF
+		$TITLE
+	EOF
 
+	# XXX: it would be nice to have a way for the user to pick a
+	# different path
 	curl -LSsf -- "$target" > "$HOME/$FEEDGROUP/$filename"
-)}
+}
 
-# stdin: the output from sfeed
-# $1: the state file for the current feed
-# $2: the rc file for the current feed
 handle_feed() {
-	# Repeatedly calling cut seems to be the most efficient way of
-	# handling this in POSIX shell. Please prove me wrong. Pretty sure
-	# read(1) can't be used since it can't handle missing fields.
-	while read -r line; do
+	state="$1"; rc="$2";
+	while read -r item; do
+		for field in TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE; do
+			unset -v "$field"
+			eval export "$field="'${item%%"$TAB"*}'
+			case "$item" in *"$TAB"*) ;; *)
+				break ;;
+			esac
+			item=${item#*"$TAB"}
+		done
+
 		# Skip old entries
-		GUID=$(printf '%s\n' "$line" | cut -f 6)
-		grep -Fxqe "$GUID" < "$1" && continue
+		# XXX: what if there isn't a GUID?
+		grep -Fxqe "$GUID" < "$state" && continue
 
 		if [ "$catchup" ]; then
-			printf '%s\n' "$GUID" >> "$1"
+			printf '%s\n' "$GUID" >> "$state"
 			continue
 		fi
 
-		TIMESTAMP=$(printf '%s\n' "$line" | cut -f 1)
-		TITLE=$(printf '%s\n' "$line" | cut -f 2)
-		LINK=$(printf '%s\n' "$line" | cut -f 3)
-		CONTENT=$(printf '%s\n' "$line" | cut -f 4)
-		CONTENT_TYPE=$(printf '%s\n' "$line" | cut -f 5)
-		AUTHOR=$(printf '%s\n' "$line" | cut -f 7)
-		ENCLOSURE=$(printf '%s\n' "$line" | cut -f 8)
-
-		export TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE
-
 		# Execute rc
-		if [ -x "$2" ]; then
-			"$2"
-		elif [ -f "$2" ]; then
-			echo "$2 exists but isn't executable" >&2
-			exit 1
+		if [ -x "$rc" ]; then
+			"$rc" || continue
+		elif [ -f "$rc" ]; then
+			echo "$rc exists but isn't executable" >&2
+			return 1
 		else
-			defaultrc
+			(defaultrc) || continue
 		fi
 
 		# Mark item as old
-		printf '%s\n' "$GUID" >> "$1"
+		printf '%s\n' "$GUID" >> "$state"
 	done
 }
 
-for feeds in "$config"/*.feeds; do
-	basename=$(basename "$feeds")
-	export FEEDGROUP=${basename%.feeds}
-
-	if [ "$FEEDGROUP" = '*' ]; then
+for feeds in *.feeds; do
+	if [ "$feeds" = '*.feeds' ]; then
 		echo 'No feedgroups defined, see the README for usage information' >&2
 		exit 1
 	fi
 
+	export FEEDGROUP="${feeds%.feeds}"
+
 	# If the user supplied a limited set of feedgroups then skip
-	# feedgroups that aren't in that set
+	# feedgroups excluded from that set
 	if [ "$*" ]; then
 		skip=1
 		for arg; do
-			if [ "$arg" = "$FEEDGROUP" ]; then
-				skip=
-			fi
+			[ "$arg" = "$FEEDGROUP" ] && skip=
 		done
 		[ "$skip" ] && continue
 	fi
 
-	rc=$config/${FEEDGROUP}rc
-	statedir=$config/${FEEDGROUP}.state
+	rc="./${FEEDGROUP}rc"
+	statedir="./${FEEDGROUP}.state"
 	mkdir -p "$statedir"
 
 	while read -r feed; do
-		# Skip empty lines
-		[ ! "$feed" ] && continue
+		[ "$feed" ] || continue # Skip empty lines
 
-		# Allow for comments after the URL
-		feed=$(printf '%s\n' "$feed" | cut -f 1 -d ' ')
+		feed=${feed%% *} # Allow for comments after the URL
 
-		md5=$(printf '%s\n' "$feed" | md5sum | cut -f 1 -d ' ')
-		state=$statedir/$md5
-
-		# : >> is like touch(1) but builtin
+		# XXX: md5sum (although portable enough) isn't POSIX. Could be
+		# replaced by substituting / for \ in the feed URL. Would break
+		# all existing sakra setups though :/
+		md5=$(md5sum) <<-EOF
+			$feed
+		EOF
+		state="$statedir/${md5%% *}"
 		: >> "$state"
 
-		curl -LSsf -- "$feed" | sfeed | handle_feed "$state" "$rc"
+		{ curl -LSsf -- "$feed" | sfeed | handle_feed "$state" "$rc"; } || :
 	done < "$feeds"
 done
 
