@@ -1,0 +1,27 @@
+#!/bin/sh -e
+
+if [ ! "$CONTENT" ] && [ ! "$LINK" ]; then
+	exit 0
+fi
+
+if [ "$CONTENT_TYPE" = html ]; then
+	ext=.html
+else
+	ext=
+fi
+
+# Sanitize the filename
+filename=$(tr '/' '\\') <<-EOF
+	$TITLE$ext
+EOF
+
+mkdir -p "$SAKRAHOME/news/"
+
+if [ "$CONTENT" ]; then
+	cat > "$SAKRAHOME/news/$filename" <<-EOF
+		$CONTENT
+	EOF
+else
+	curl -LSsf -- "$LINK" > "$SAKRAHOME/news/$filename"
+fi
+
