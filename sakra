@@ -65,7 +65,10 @@ handle_feed() {
 			# remove $field from $item
 			item=${item#*"$TAB"}
 		done
-		[ "$old" ] && continue
+
+		if [ "$old" ]; then
+			continue
+		fi
 
 		if [ "$catchup" ]; then
 			printf '%s\n' "$GUID" >> "$state"
@@ -100,9 +103,13 @@ for feeds in *.feeds; do
 	if [ "$*" ]; then
 		skip=1
 		for arg; do
-			[ "$arg" = "$FEEDGROUP" ] && skip=
+			if [ "$arg" = "$FEEDGROUP" ]; then
+				skip=
+			fi
 		done
-		[ "$skip" ] && continue
+		if [ "$skip" ]; then
+			continue
+		fi
 	fi
 
 	rc="./${FEEDGROUP}rc"

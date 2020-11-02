@@ -8,8 +8,11 @@ if [ ! "$CONTENT" ] && [ ! "$LINK" ]; then
 	exit 0
 fi
 
-ext=
-[ "$CONTENT_TYPE" = html ] && ext=.html
+if [ "$CONTENT_TYPE" = html ]; then
+	ext=.html
+else
+	ext=
+fi
 
 # Sanitize the filename
 filename=$(tr '/' '\\') <<-EOF
