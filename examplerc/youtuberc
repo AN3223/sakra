@@ -5,8 +5,8 @@
 # into RSS feeds https://github.com/AN3223/scripts/blob/master/y2rss
 
 [ ! "$LINK" ] && exit 0
-mkdir -p "$HOME/youtube"
+mkdir -p "$SAKRAHOME/youtube"
 
-template='$HOME/youtube/%(uploader)s - %(title)s.%(ext)s'
+template="$SAKRAHOME/youtube/%(uploader)s - %(title)s.%(ext)s"
 youtube-dl -q --no-warnings --no-mtime -o "$template" "$LINK"
 

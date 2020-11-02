@@ -1,7 +1,8 @@
 #!/bin/sh -e
 # shellcheck disable=SC2086,SC1003
 
-mkdir -p "${SAKRADIR:=${HOME:?}/.sakra}"
+export SAKRAHOME="${SAKRAHOME:=${HOME:?}}"
+mkdir -p "${SAKRADIR:=${HOME:?}/.sakra}" "$SAKRAHOME"
 cd "$SAKRADIR"
 
 TAB=$(printf '\t')
@@ -23,8 +24,6 @@ defaultrc() {
 
 	target=${ENCLOSURE:-$LINK}
 
-	mkdir -p "${HOME:?}/$FEEDGROUP"
-
 	# Add the file extension, only for enclosures
 	if [ "$ENCLOSURE" ]; then
 		path=${target##*/}
@@ -42,9 +41,8 @@ defaultrc() {
 		$TITLE
 	EOF
 
-	# XXX: it would be nice to have a way for the user to pick a
-	# different path
-	curl -LSsf -- "$target" > "$HOME/$FEEDGROUP/$filename"
+	mkdir -p "$SAKRAHOME/$FEEDGROUP"
+	curl -LSsf -- "$target" > "$SAKRAHOME/$FEEDGROUP/$filename"
 }
 
 handle_feed() {

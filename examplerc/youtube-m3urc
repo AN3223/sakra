@@ -6,12 +6,12 @@
 # into RSS feeds https://github.com/AN3223/scripts/blob/master/y2rss
 
 [ ! "$LINK" ] && exit 0
-mkdir -p "$HOME/youtube"
+mkdir -p "$SAKRAHOME/youtube"
 
 # Sanitize the filename by removing occurences of /
 filename=$(tr '/' '\\') <<-EOF
 	$AUTHOR - $TITLE
 EOF
 
-printf '%s\n' "$LINK" > "$HOME/youtube/$filename.m3u"
+printf '%s\n' "$LINK" > "$SAKRAHOME/youtube/$filename.m3u"
 

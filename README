@@ -58,13 +58,13 @@ The following environment variables are passed:
   AUTHOR
   ENCLOSURE
   FEEDGROUP
+  SAKRAHOME
 
-All of these environment variables (with the exception of the FEEDGROUP, which
-is just a convenient way of getting the name of the feedgroup) correspond to
-attributes of the feed item (and therefore may be empty). The stdout, stderr,
-stdin of the script are currently unused. If the script exits with an error
-then sakra will skip the failed feed item and try to re-run the rc script on
-the failed feed item the next time sakra is invoked.
+Most of these environment variables come straight from the feed item (and
+therefore may be empty). SAKRAHOME is the directory where the user would prefer
+their downloads to be dropped into ($SAKRAHOME/news for example). If the script
+exits with an error then sakra will skip the failed feed item and try to re-run
+the rc script on the failed feed item the next time sakra is invoked.
 
 Example rc scripts can be found in the "examplerc" directory of this
 repository.
@@ -75,6 +75,10 @@ OTHER CONFIGURATION
 
 The SAKRADIR environment variable may be used to change the default location of
 sakra's configuration directory, usually ~/.sakra
+
+The SAKRAHOME environment variable may be used to ask sakra (and sakra's rc
+scripts) to drop your downloads into an alternative directory, instead of your
+HOME.
 
 ---------
 SEE ALSO
