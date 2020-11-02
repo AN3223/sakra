@@ -31,6 +31,8 @@ defaultrc() {
 
 		# Strip URL stuff out
 		ext=${ext%%\?*}; ext=${ext%%\#*};
+	elif [ "$CONTENT_TYPE" = html ]; then
+		ext=html
 	fi
 
 	# Sanitize the filename
