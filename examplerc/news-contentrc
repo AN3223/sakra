@@ -1,5 +1,8 @@
 #!/bin/sh -e
 # shellcheck disable=SC1003
+# This rc will try to use the CONTENT field and fallback to curling
+# LINK. Useful for articles/blogs where the html is expected to be
+# embedded into the CONTENT field.
 
 if [ ! "$CONTENT" ] && [ ! "$LINK" ]; then
 	exit 0
