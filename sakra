@@ -1,5 +1,5 @@
 #!/bin/sh -e
-# shellcheck disable=SC2086,SC1003
+# shellcheck disable=SC1003
 
 export SAKRAHOME="${SAKRAHOME:=${HOME:?}}"
 mkdir -p "${SAKRADIR:=${HOME:?}/.sakra}" "$SAKRAHOME"
@@ -27,18 +27,15 @@ defaultrc() {
 	# Add the file extension, only for enclosures
 	if [ "$ENCLOSURE" ]; then
 		path=${target##*/}
-		extension=${path##*.}
+		ext=${path##*.}
 
 		# Strip URL stuff out
-		extension=${extension%%\?*}
-		extension=${extension%%\#*}
-
-		[ "$extension" ] && TITLE="${TITLE}.${extension}"
+		ext=${ext%%\?*}; ext=${ext%%\#*};
 	fi
 
 	# Sanitize the filename
 	filename=$(tr '/' '\\') <<-EOF
-		$TITLE
+		${AUTHOR:+$AUTHOR - }${TITLE:-${TIMESTAMP:-$(date +%c)}}${ext:+.$ext}
 	EOF
 
 	mkdir -p "$SAKRAHOME/$FEEDGROUP"

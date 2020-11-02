@@ -1,22 +1,19 @@
 #!/bin/sh -e
+# shellcheck disable=SC1003
 
 if [ ! "$CONTENT" ] && [ ! "$LINK" ]; then
 	exit 0
 fi
 
-if [ "$CONTENT_TYPE" = html ]; then
-	ext=.html
-else
-	ext=
-fi
+ext=
+[ "$CONTENT_TYPE" = html ] && ext=.html
 
 # Sanitize the filename
 filename=$(tr '/' '\\') <<-EOF
-	$TITLE$ext
+	${AUTHOR:+$AUTHOR - }${TITLE:-${TIMESTAMP:-$(date +%c)}}$ext
 EOF
 
 mkdir -p "$SAKRAHOME/news/"
-
 if [ "$CONTENT" ]; then
 	cat > "$SAKRAHOME/news/$filename" <<-EOF
 		$CONTENT
