@@ -48,18 +48,25 @@ defaultrc() {
 handle_feed() {
 	state="$1"; rc="$2";
 	while read -r item; do
+		unset -v TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE old
 		for field in TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE; do
-			unset -v "$field"
 			eval export "$field="'${item%%"$TAB"*}'
+
+			# Skip old entries
+			# XXX: what if there isn't a GUID?
+			if [ "$field" = GUID ] && grep -Fxqe "$GUID" < "$state"; then
+				old=1; break;
+			fi
+
+			# stop looking for fields when there aren't any more fields
 			case "$item" in *"$TAB"*) ;; *)
 				break ;;
 			esac
+
+			# remove $field from $item
 			item=${item#*"$TAB"}
 		done
-
-		# Skip old entries
-		# XXX: what if there isn't a GUID?
-		grep -Fxqe "$GUID" < "$state" && continue
+		[ "$old" ] && continue
 
 		if [ "$catchup" ]; then
 			printf '%s\n' "$GUID" >> "$state"
