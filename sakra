@@ -46,7 +46,7 @@ defaultrc() {
 
 handle_feed() {
 	state="$1"; rc="$2";
-	while read -r item; do
+	while IFS= read -r item; do
 		unset -v TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE old
 		for field in TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE; do
 			eval export "$field="'${item%%"$TAB"*}'
