@@ -21,7 +21,7 @@ EOF
 
 mkdir -p "$SAKRAHOME/news/"
 if [ "$CONTENT" ]; then
-	sed 's/\\n//g' > "$SAKRAHOME/news/$filename" <<-EOF
+	sed 's/\\n/ /g' > "$SAKRAHOME/news/$filename" <<-EOF
 		$CONTENT
 	EOF
 else
