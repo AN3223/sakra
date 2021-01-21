@@ -8,5 +8,5 @@
 mkdir -p "$SAKRAHOME/youtube"
 
 template="$SAKRAHOME/youtube/%(uploader)s - %(title)s.%(ext)s"
-youtube-dl -q --no-warnings --no-mtime -o "$template" "$LINK"
+youtube-dl -q --no-warnings --no-mtime --match-filter !is_live -o "$template" "$LINK"
 
