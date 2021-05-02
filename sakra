@@ -20,19 +20,14 @@ shift $((OPTIND-1))
 
 # This runs in the same context as a user's rc script
 defaultrc() {
-	if [ ! "$LINK" ] && [ ! "$ENCLOSURE" ]; then
-		exit 0
-	fi
-
+	[ "$LINK" ] || [ "$ENCLOSURE" ] || exit 0
 	target=${ENCLOSURE:-$LINK}
 
-	# Add the file extension, only for enclosures
+	# Add file extensions when applicable
 	if [ "$ENCLOSURE" ]; then
 		path=${target##*/}
 		ext=${path##*.}
-
-		# Strip URL stuff out
-		ext=${ext%%\?*}; ext=${ext%%\#*};
+		ext=${ext%%\?*}; ext=${ext%%\#*}; # Strip URL junk out
 	elif [ "$CONTENT_TYPE" = html ]; then
 		ext=html
 	fi
@@ -53,40 +48,32 @@ handle_feed() {
 		for field in TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE; do
 			eval export "$field="'${item%%"$TAB"*}'
 
-			# Skip old entries
-			# XXX: what if there isn't a GUID?
+			# Skip old entries (XXX: what if there isn't a GUID?)
 			if [ "$field" = GUID ] && grep -Fxqe "$GUID" < "$state"; then
 				old=1; break;
 			fi
 
-			# stop looking for fields when there aren't any more fields
-			case "$item" in *"$TAB"*) ;; *) break ;; esac
+			case "$item" in *"$TAB"*) ;; *) break ;; esac # no more fields = we're done
 
-			# remove $field from $item
-			item=${item#*"$TAB"}
+			item=${item#*"$TAB"} # remove $field from $item
 		done
 
-		if [ "$old" ]; then
-			continue
-		fi
+		if [ "$old" ]; then continue; fi
 
 		if [ "$catchup" ]; then
 			printf '%s\n' "$GUID" >> "$state"
 			continue
 		fi
 
-		# Execute rc
 		if [ -x "$rc" ]; then
 			"$rc" || continue
 		elif [ -f "$rc" ]; then
-			echo "$rc exists but isn't executable" >&2
-			return 1
+			echo "$rc exists but isn't executable" >&2; return 1;
 		else
 			(defaultrc) || continue
 		fi
 
-		# Mark item as old
-		printf '%s\n' "$GUID" >> "$state"
+		printf '%s\n' "$GUID" >> "$state" # Mark item as old
 	done
 }
 
@@ -98,28 +85,23 @@ for feeds in *.feeds; do
 
 	export FEEDGROUP="${feeds%.feeds}"
 
-	# If the user supplied a limited set of feedgroups then skip
-	# feedgroups excluded from that set
+	# Implements selective feedgroup updates:
 	if [ "$*" ]; then
 		skip=1
 		for arg; do
 			if [ "$arg" = "$FEEDGROUP" ]; then
-				skip=
+				skip=; break;
 			fi
 		done
-		if [ "$skip" ]; then
-			continue
-		fi
+		if [ "$skip" ]; then continue; fi
 	fi
 
 	rc="./${FEEDGROUP}rc"
 	statedir="./${FEEDGROUP}.state"
 	mkdir -p "$statedir"
 
-	while read -r feed; do
+	while read -r feed _; do # _ allows for comments after URL
 		[ "$feed" ] || continue # Skip empty lines
-
-		feed=${feed%% *} # Allow for comments after the URL
 
 		# XXX: md5sum (although portable enough) isn't POSIX. Could be
 		# replaced by substituting / for \ in the feed URL. Would break
