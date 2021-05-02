@@ -23,6 +23,6 @@ if [ "$CONTENT" ]; then
 		$CONTENT
 	EOF
 else
-	curl -LSsf -- "$LINK" > "$SAKRAHOME/news/$filename"
+	curl -LSsf${V:+v} -- "$LINK" > "$SAKRAHOME/news/$filename"
 fi
 

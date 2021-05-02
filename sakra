@@ -12,11 +12,13 @@ cd "$SAKRADIR"
 
 TAB=$(printf '\t')
 
-unset -v catchup
-while getopts "c" o; do
-	case "$o" in c) catchup=1 ;; esac
+unset -v catchup V NV
+while getopts "cv" o; do
+	case "$o" in c) catchup=1 ;; v) V=1 ;; esac
 done
 shift $((OPTIND-1))
+
+if [ ! "$V" ]; then NV=1; fi
 
 # This runs in the same context as a user's rc script
 defaultrc() {
@@ -38,7 +40,7 @@ defaultrc() {
 	EOF
 
 	mkdir -p "$SAKRAHOME/$FEEDGROUP"
-	curl -LSsf -- "$target" > "$SAKRAHOME/$FEEDGROUP/$filename"
+	curl -LSsf${V:+v} -- "$target" > "$SAKRAHOME/$FEEDGROUP/$filename"
 }
 
 handle_feed() {
@@ -112,7 +114,7 @@ for feeds in *.feeds; do
 		state="$statedir/${md5%% *}"
 		: >> "$state"
 
-		{ curl -LSsf -- "$feed" | sfeed | handle_feed "$state" "$rc"; } || :
+		{ curl -LSsf${V:+v} -- "$feed" | sfeed | handle_feed "$state" "$rc"; } || :
 	done < "$feeds"
 done
 

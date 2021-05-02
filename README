@@ -1,7 +1,7 @@
 sakra - swiss army knife rss aggregator
 
 SYNOPSIS:
-  sakra [-c] [FEEDGROUP]...
+  sakra [-cv] [FEEDGROUP]...
 
 DEPENDENCIES:
   curl, sfeed
@@ -59,12 +59,17 @@ The following environment variables are passed:
   ENCLOSURE
   FEEDGROUP
   SAKRAHOME
+  V
+  NV
 
 Most of these environment variables come straight from the feed item (and
 therefore may be empty). SAKRAHOME is the directory where the user would prefer
 their downloads to be dropped into ($SAKRAHOME/news for example). If the script
 exits with an error then sakra will skip the failed feed item and try to re-run
 the rc script on the failed feed item the next time sakra is invoked.
+
+The V environment variable stands for verbose, it's set with the -v flag. NV is
+set whenever V is unset.
 
 Example rc scripts can be found in the "examplerc" directory of this
 repository.

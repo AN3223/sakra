@@ -7,6 +7,6 @@
 [ "$LINK" ] || exit 0
 mkdir -p "$SAKRAHOME/youtube"
 
-template="$SAKRAHOME/youtube/%(uploader)s - %(title)s.%(ext)s"
-youtube-dl -q --no-warnings --no-mtime --match-filter !is_live -o "$template" "$LINK"
+youtube-dl ${NV:+-q --no-warnings} ${V:+-v} --no-mtime --match-filter !is_live \
+	-o "$SAKRAHOME/youtube/%(uploader)s - %(title)s.%(ext)s" "$LINK"
 
