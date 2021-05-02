@@ -1,19 +1,20 @@
 #!/bin/sh -e
 # shellcheck disable=SC1003
 
-export POSIXLY_CORRECT=1
-export SAKRAHOME="${SAKRAHOME:=${HOME:?}}"
-mkdir -p "${SAKRADIR:=${HOME:?}/.sakra}" "$SAKRAHOME"
+export SAKRAHOME="${SAKRAHOME:-${HOME:?}}"
+case "$SAKRAHOME" in -*) exit 1 ;; esac
+
+SAKRADIR="${SAKRADIR:-${HOME:?}/.sakra}"
+case "$SAKRADIR" in -*) exit 1 ;; esac
+
+mkdir -p "$SAKRADIR" "$SAKRAHOME"
 cd "$SAKRADIR"
 
 TAB=$(printf '\t')
 
 unset -v catchup
 while getopts "c" o; do
-	case "$o" in
-		c) catchup=1;;
-		*) ;;
-	esac
+	case "$o" in c) catchup=1 ;; esac
 done
 shift $((OPTIND-1))
 
@@ -59,9 +60,7 @@ handle_feed() {
 			fi
 
 			# stop looking for fields when there aren't any more fields
-			case "$item" in *"$TAB"*) ;; *)
-				break ;;
-			esac
+			case "$item" in *"$TAB"*) ;; *) break ;; esac
 
 			# remove $field from $item
 			item=${item#*"$TAB"}
@@ -78,7 +77,7 @@ handle_feed() {
 
 		# Execute rc
 		if [ -x "$rc" ]; then
-			(unset -v POSIXLY_CORRECT; "$rc") || continue
+			"$rc" || continue
 		elif [ -f "$rc" ]; then
 			echo "$rc exists but isn't executable" >&2
 			return 1
