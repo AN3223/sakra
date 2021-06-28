@@ -12,9 +12,10 @@ else
 	ext=
 fi
 
-# Sanitize the filename
+name="${FEEDNAME:-$AUTHOR}"
+title="${TITLE:-${TIMESTAMP:-$(date +%c)}}"
 filename=$(tr '/' '\\') <<-EOF
-	${AUTHOR:+$AUTHOR - }${TITLE:-${TIMESTAMP:-$(date +%c)}}$ext
+	${name:+$name - }${title}${ext}
 EOF
 
 mkdir -p "$SAKRAHOME/news/"

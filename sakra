@@ -1,6 +1,8 @@
 #!/bin/sh -e
 # shellcheck disable=SC1003
 
+help() { echo 'sakra [-cv] [FEEDGROUP...]' >&2 ; }
+
 export SAKRAHOME="${SAKRAHOME:-${HOME:?}}"
 case "$SAKRAHOME" in -*) exit 1 ;; esac
 
@@ -13,8 +15,13 @@ cd "$SAKRADIR"
 TAB=$(printf '\t')
 
 unset -v catchup V NV
-while getopts "cv" o; do
-	case "$o" in c) catchup=1 ;; v) V=1 ;; esac
+while getopts cvh o; do
+	case "$o" in
+		c) catchup=1 ;;
+		v) V=1 ;;
+		h) help; exit 0 ;;
+		*) help; exit 1 ;;
+	esac
 done
 shift $((OPTIND-1))
 
@@ -34,9 +41,11 @@ defaultrc() {
 		ext=html
 	fi
 
-	# Sanitize the filename
+	# carefully assemble filename, substitute / for \
+	name="${FEEDNAME:-$AUTHOR}"
+	title="${TITLE:-${TIMESTAMP:-$(date +%c)}}"
 	filename=$(tr '/' '\\') <<-EOF
-		${AUTHOR:+$AUTHOR - }${TITLE:-${TIMESTAMP:-$(date +%c)}}${ext:+.$ext}
+		${name:+$name - }${title}${ext:+.$ext}
 	EOF
 
 	mkdir -p "$SAKRAHOME/$FEEDGROUP"
@@ -102,8 +111,9 @@ for feeds in *.feeds; do
 	statedir="./${FEEDGROUP}.state"
 	mkdir -p "$statedir"
 
-	while read -r feed _; do # _ allows for comments after URL
+	while read -r feed FEEDNAME; do
 		[ "$feed" ] || continue # Skip empty lines
+		export FEEDNAME
 
 		# XXX: md5sum (although portable enough) isn't POSIX. Could be
 		# replaced by substituting / for \ in the feed URL. Would break
