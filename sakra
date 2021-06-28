@@ -18,14 +18,14 @@ unset -v catchup V NV
 while getopts cvh o; do
 	case "$o" in
 		c) catchup=1 ;;
-		v) V=1 ;;
+		v) export V=1 ;;
 		h) help; exit 0 ;;
 		*) help; exit 1 ;;
 	esac
 done
 shift $((OPTIND-1))
 
-if [ ! "$V" ]; then NV=1; fi
+if [ ! "$V" ]; then export NV=1; fi
 
 # This runs in the same context as a user's rc script
 defaultrc() {
