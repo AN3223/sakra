@@ -6,7 +6,7 @@ help() { echo 'sakra [-cv] [FEEDGROUP...]' >&2 ; }
 export SAKRAHOME="${SAKRAHOME:-${HOME:?}}"
 case "$SAKRAHOME" in -*) exit 1 ;; esac
 
-SAKRADIR="${SAKRADIR:-${HOME:?}/.sakra}"
+SAKRADIR="${SAKRADIR:-${SAKRAHOME:?}/.sakra}"
 case "$SAKRADIR" in -*) exit 1 ;; esac
 
 mkdir -p "$SAKRADIR" "$SAKRAHOME"
