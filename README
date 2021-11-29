@@ -57,8 +57,10 @@ The following environment variables are passed to rc scripts:
   FEEDGROUP
   FEEDNAME
   SAKRAHOME
-  V
   NV
+  V
+  VV
+  VVV
 
 Most of these environment variables come straight from the feed item and may be
 empty.
@@ -73,8 +75,11 @@ to be dropped into (e.g., $SAKRAHOME/news for news).
 FEEDNAME is the optional name of the feed added by the user after the URL in the
 feeds file.
 
-The V environment variable stands for verbose, it's set with the -v flag. NV is
-set whenever V is unset.
+The V environment variable is the verbosity level set by occurrences of the -v
+flag. The VV, VVV, and NV variables are based on the value of V, they're meant
+convenience in parameter expansions (e.g., curl ${VVV:+-v} ...). NV corresponds
+to no -v flags, V corresponds to 1 or more, VV corresponds to 2 or more, VVV
+corresponds to 3 or more.
 
 Example rc scripts can be found in the "examplerc" directory of this
 repository.

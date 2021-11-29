@@ -7,7 +7,7 @@
 [ "$LINK" ] || exit 0
 mkdir -p "$SAKRAHOME/youtube"
 
-youtube-dl ${NV:+-q --no-warnings --no-progress} ${V:+-v} \
+youtube-dl ${NV:+--no-progress} ${V:+-q} ${VVV:+-v} \
 	--no-mtime --match-filter !is_live \
 	-o "$SAKRAHOME/youtube/${FEEDNAME:-%(uploader)s} - %(title)s.%(ext)s" "$LINK"
 
