@@ -1,0 +1,173 @@
+#!/bin/sh -e
+# shellcheck disable=SC1003
+
+help() { echo 'sakra2 [-cv] [FEEDGROUP[/FEEDID]]...' >&2 ; }
+TAB=$(printf '\t')
+
+export SAKRAHOME="${SAKRAHOME:-${HOME:?}}"
+case "$SAKRAHOME" in -*) exit 1 ;; esac
+
+SAKRADIR="${SAKRADIR:-${SAKRAHOME:?}/.sakra2}"
+case "$SAKRADIR" in -*) exit 1 ;; esac
+
+mkdir -p "$SAKRADIR" "$SAKRAHOME"
+cd "$SAKRADIR"
+
+if command -v flock > /dev/null 2>&1; then
+	exec 9> lock
+	while ! flock -n 9; do
+		sleep 1
+	done
+else
+	while ! mkdir lock; do
+		sleep 1
+	done
+	trap 'trap - EXIT HUP QUIT TERM INT ABRT; rmdir lock' EXIT HUP QUIT TERM INT ABRT
+fi
+
+unset -v catchup NV
+V=0
+while getopts cvh o; do
+	case "$o" in
+		c) catchup=1 ;;
+		v) export V=$((V+1)) ;;
+		h) help; exit 0 ;;
+		*) help; exit 1 ;;
+	esac
+done
+shift $((OPTIND-1))
+
+case "$V" in
+	0) export NV=1; unset -v V;;
+	1) ;;
+	2) export VV=1;;
+	3) export VV=1 VVV=1;;
+esac
+
+# this runs in the same context as a user's rc script
+defaultrc() {
+	set -C
+
+	[ "$LINK" ] || [ "$ENCLOSURE" ] || exit 0
+	target=${ENCLOSURE:-$LINK}
+
+	# add file extensions when applicable
+	if [ "$ENCLOSURE" ]; then
+		path=${target##*/}; path=${path%%[?#]*};
+		ext=${path##*.}
+	else
+		ext=html
+	fi
+
+	# carefully assemble filename, sub / for \
+	name="${FEEDNAME:-$AUTHOR}"
+	title="${TITLE:-${TIMESTAMP:-$(date +%c)}}"
+	filename=$(tr '/' '\\') <<-EOF
+		${name:+$name - }${title}${ext:+.$ext}
+	EOF
+
+	mkdir -p "$SAKRAHOME/$FEEDGROUP"
+	curl -LSsf${VVV:+v} -- "$target" > "$SAKRAHOME/$FEEDGROUP/$filename"
+}
+
+handle_feed() {
+	while IFS= read -r item; do
+		if [ "$VVV" ]; then
+			echo "$item" >&2
+		fi
+
+		unset -v TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE old
+		for field in TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE; do
+			eval export "$field="'${item%%"$TAB"*}'
+
+			# skip old entries (XXX: what if there isn't a GUID?)
+			if [ "$field" = GUID ] && grep -Fxqe "$GUID" < "$STATE"; then
+				old=1; break;
+			fi
+
+			case "$item" in *"$TAB"*) ;; *) break ;; esac # no more fields = we're done
+
+			item=${item#*"$TAB"} # remove $field from $item
+		done
+
+		if [ "$old" ]; then continue; fi
+
+		if [ "$catchup" ]; then
+			printf '%s\n' "$GUID" >> "$STATE"
+			continue
+		fi
+
+		if [ -x "$RC" ]; then
+			"$RC" || continue
+		elif [ -f "$RC" ]; then
+			echo "$RC exists but isn't executable" >&2; return 1;
+		else
+			(defaultrc) || continue
+		fi
+
+		printf '%s\n' "$GUID" >> "$STATE" # mark item as old
+	done
+}
+
+iterate_feeds() {
+	while read -r feed FEEDNAME; do
+		[ "$feed" ] || continue # skip empty lines
+		export FEEDNAME
+
+		if [ "$FEEDNAME" ]; then
+			FEEDID="$FEEDNAME"
+		else
+			FEEDID=$(tr -d /) <<-EOF
+				${feed#*://}
+			EOF
+		fi
+
+		if [ "$1" ] && [ "$FEEDID" != "$1" ]; then
+			continue
+		fi
+
+		mkdir -p ./state/"$FEEDGROUP"
+		export STATE="./state/$FEEDGROUP/$FEEDID"
+		: >> "$STATE"
+
+		if [ "$VV" ]; then
+			echo Working on feed "$FEEDGROUP/${FEEDID:-$feed}" ... >&2
+		fi
+
+		{ curl -LSsf${VVV:+v} -- "$feed" | sfeed | handle_feed; } || :
+	done
+}
+
+iterate_feedgroups() {
+	for feeds; do
+		if [ "$V" ]; then
+			echo Working on feedgroup "$feeds" ... >&2
+		fi
+
+		# implements FEEDGROUP/FEEDID syntax
+		unset -v FEEDID
+		case "$feeds" in
+			*/*) FEEDID=${feeds#*/}; feeds=${feeds%%/*}.feeds ;;
+			*.feeds) ;;
+			*) feeds="$feeds.feeds"
+		esac
+
+		[ -f "$feeds" ] || continue
+
+		export FEEDGROUP="${feeds%.feeds}"
+		export RC="./${FEEDGROUP}rc"
+
+		if [ "$FEEDID" ]; then
+			iterate_feeds "$FEEDID" < "$feeds"
+		else
+			iterate_feeds < "$feeds"
+		fi
+	done
+}
+
+if [ "$*" ]; then
+	iterate_feedgroups "$@"
+else
+	iterate_feedgroups *.feeds
+fi
+

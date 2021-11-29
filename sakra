@@ -1,6 +1,33 @@
 #!/bin/sh -e
 # shellcheck disable=SC1003
 
+deprwarn() {
+	cat >&2 <<-EOF
+		sakra is deprecated! Use sakra2 instead!
+
+		After running sakra, run the following commands to migrate to sakra2:
+
+		$ mkdir ~/.sakra2
+		$ cp ~/.sakra/*rc ~/.sakra/*.feeds ~/.sakra2/
+		$ sakra2 -c
+
+		And then use sakra2 from now on!
+
+		sakra2's CLI is backward compatible.
+
+		You may remove the old ~/.sakra directory if you wish.
+
+		A copy of this deprecation warning will be left at ~/SAKRA_IS_DEPRECATED!!! for your annoyance.
+	EOF
+}
+
+deprwarn
+if [ -t 0 ] && [ -t 1 ]; then
+	echo; echo Continue? Y/n;
+	read answer
+	case "$answer" in n|N) exit ;; esac
+fi
+
 help() { echo 'sakra [-cv] [FEEDGROUP...]' >&2 ; }
 
 export SAKRAHOME="${SAKRAHOME:-${HOME:?}}"
@@ -12,8 +39,17 @@ case "$SAKRADIR" in -*) exit 1 ;; esac
 mkdir -p "$SAKRADIR" "$SAKRAHOME"
 cd "$SAKRADIR"
 
-mkdir lock
-trap 'trap - EXIT HUP QUIT TERM INT ABRT; rmdir lock' EXIT HUP QUIT TERM INT ABRT
+if command -v flock > /dev/null 2>&1; then
+	exec 9> lock
+	while ! flock -n 9; do
+		sleep 1
+	done
+else
+	while ! mkdir lock; do
+		sleep 1
+	done
+	trap 'trap - EXIT HUP QUIT TERM INT ABRT; rmdir lock' EXIT HUP QUIT TERM INT ABRT
+fi
 
 TAB=$(printf '\t')
 
@@ -149,4 +185,9 @@ for feeds in *.feeds; do
 		{ curl -LSsf${VVV:+v} -- "$feed" | sfeed | handle_feed "$state" "$rc"; } || :
 	done < "$feeds"
 done
+
+deprwarn
+
+set -C
+deprwarn 2> ~/SAKRA_IS_DEPRECATED!!!
 

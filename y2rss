@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use URI;
+
+#
+# URLs:
+# https://youtube.com/user/tuxreviews/videos
+# https://youtube.com/c/tuxreviews/videos
+# https://youtube.com/channel/UC5UAwBUum7CPN5buc-_N1Fw
+# https://youtube.com/playlist?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG
+#
+# Feed counterparts:
+# https://youtube.com/feeds/videos.xml?user=tuxreviews
+# https://youtube.com/feeds/videos.xml?user=tuxreviews
+# https://youtube.com/feeds/videos.xml?channel_id=UC5UAwBUum7CPN5buc-_N1Fw
+# https://youtube.com/feeds/videos.xml?playlist_id=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG
+#
+
+foreach my $rawurl (@ARGV) {
+	my $url = URI->new($rawurl);
+	my @path = $url->path_segments();
+
+	if (($path[1] eq 'user') or ($path[1] eq 'c')) {
+		print "https://youtube.com/feeds/videos.xml?user=$path[2]\n";
+	} elsif ($path[1] eq 'channel') {
+		print "https://youtube.com/feeds/videos.xml?channel_id=$path[2]\n";
+	} elsif ($path[1] eq 'playlist') {
+		my %params = $url->query_form;
+		print "https://youtube.com/feeds/videos.xml?playlist_id=$params{list}\n";
+	} else {
+		print STDERR "Invalid URL: $rawurl\n";
+		exit 1;
+	}
+}
+

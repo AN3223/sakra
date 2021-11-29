@@ -1,10 +1,10 @@
-sakra - swiss army knife rss aggregator
+sakra2 - swiss army knife rss aggregator
 
 SYNOPSIS:
-  sakra [-cv] [FEEDGROUP...]
+  sakra2 [-cv] [FEEDGROUP[/FEEDID]]...
 
 DEPENDENCIES:
-  curl, sfeed
+  sfeed, curl
 
 -----
 WHY?
@@ -15,26 +15,59 @@ I could never find a single program that would handle all three of these needs
 for me so I wrote one myself.
 
 If you are someone struggling with the same issue, or someone who just wants a
-simple RSS aggregator, I hope that you would find sakra useful.
+simple RSS aggregator, I hope that you would find sakra2 useful.
 
 -----------
 QUICKSTART
 -----------
 
-1. Make a file named ~/.sakra/<feedgroup>.feeds (where <feedgroup> is some
-   arbitrary name, e.g., "podcasts") and populate it with a newline-separated
-   list of URLs to fetch RSS feeds from. This defines a new "feedgroup" for
-   sakra to keep track of.
-2. Assuming you don't want to download the entire back catalog of everything in
-   the feedgroup, run the "sakra -c <feedgroup>" command (replace <feedgroup>
-   with the name of the feedgroup you defined on step #1) to tell sakra to
-   "catch up" on your feedgroup.
-3. Later run the "sakra" command to update your feeds. It will download each new
-   item (enclosure if available, falling back to curling the link) into
-   $HOME/<feedgroup>/ (directory created automatically).
+1. Place feed URLs in ~/.sakra2/<feedgroup>.feeds (<feedgroup> is an arbitrary
+	 name, e.g., "podcasts"). One URL per line, with an optional feed ID after
+	 the URL, separated by a space.
 
-This process should work for both podcasts and web pages, for other uses see the
-RC SCRIPTS section.
+2. Run "sakra2 -c <feedgroup>" to "catch up" on the new feed group, skipping
+	 all of the items currently on the feeds. Skip this step if you want to
+	 download the back catalogs of the new feeds.
+
+3. Later run "sakra2" to update your feeds. It will download each new item
+	 (enclosure if available, falling back to curling the link) into
+	 $HOME/<feedgroup>/ (directory created automatically).
+
+4. Later when you want to append a new feed to your feed group:
+	 echo "<feedurl> <feedID>" >> ~/.sakra2/<feedgroup>.feeds
+	 sakra2 -c <feedgroup>/<feedID>  # again, assuming no back catalog
+
+This process should work for both podcasts and web pages (news, blogs, etc.).
+
+For downloading YouTube videos, place feed URLs[0] in ~/.sakra2/youtube.feeds
+and link the youtuberc script into your sakra2 directory:
+
+$ ln -s $SAKRAREPO/examplerc/youtuberc ~/.sakra2/youtuberc
+
+For saving YouTube links as m3u files, which can hopefully be handled by a
+YouTube-aware media player, e.g., mpv+youtube-dl, do the same process with the
+youtube-m3urc script:
+
+$ ln -s $SAKRAREPO/examplerc/youtube-m3urc ~/.sakra2/youtube-m3urc
+
+There's also a news-contentrc for speeding up fetches from sites that cram
+whole posts into the RSS <description> tag.
+
+[0] The y2rss script can do YouTube URLs -> RSS URLs conversion:
+
+$ y2rss https://youtube.com/user/tuxreviews/videos
+-> https://youtube.com/feeds/videos.xml?user=tuxreviews
+
+y2rss is a perl script which requires the Perl URI module. It may be installed
+already, otherwise you should search for the package and install it.
+
+If the channel name has ever changed, you'll need to make sure the original
+name is used for generating the RSS link so you don't get a 404. The default
+landing page for a YouTube channel will usually work, but if you click links on
+that page it may update the URL to the new channel name, which won't work with
+any RSS reader.
+
+Does this seem complex? It's not my fault. Blame Google.
 
 -----------
 RC SCRIPTS
@@ -65,8 +98,8 @@ The following environment variables are passed to rc scripts:
 Most of these environment variables come straight from the feed item and may be
 empty.
 
-If the rc script exits with an error then sakra will skip the failed feed item
-and try to re-run the rc script on the failed feed item the next time sakra is
+If the rc script exits with an error then sakra2 will skip the failed feed item
+and try to re-run the rc script on the failed feed item the next time sakra2 is
 invoked. This is usually useful for network errors or other transient errors.
 
 SAKRAHOME is the parent directory of where the user would prefer their downloads
@@ -88,13 +121,15 @@ repository.
 OTHER CONFIGURATION
 --------------------
 
-After each URL an optional FEEDNAME may be included, which will override the
-AUTHOR in the filename if the rc script supports it.
+After each URL an optional FEEDNAME/FEEDID may be included, which will override
+the AUTHOR in the filename if the rc script supports it and makes it easy to
+update/catch up on a single feed (otherwise a FEEDID is generated from the
+URL).
 
 The SAKRADIR environment variable may be used to change the default location of
-sakra's configuration directory, usually ~/.sakra
+sakra2's configuration directory, usually ~/.sakra2
 
-The SAKRAHOME environment variable may be used to ask sakra (and sakra's rc
+The SAKRAHOME environment variable may be used to ask sakra2 (and sakra2's rc
 scripts) to drop your downloads into an alternative parent directory, instead of
 your HOME.
 
