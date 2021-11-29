@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -eC
 # shellcheck disable=SC1003
 # This rc will try to use the CONTENT field and fallback to curling
 # LINK. Saves lots of time/bandwidth for articles/blogs where the html

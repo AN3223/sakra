@@ -38,6 +38,8 @@ esac
 
 # This runs in the same context as a user's rc script
 defaultrc() {
+	set -C
+
 	[ "$LINK" ] || [ "$ENCLOSURE" ] || exit 0
 	target=${ENCLOSURE:-$LINK}
 

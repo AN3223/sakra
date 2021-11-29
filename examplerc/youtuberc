@@ -8,6 +8,6 @@
 mkdir -p "$SAKRAHOME/youtube"
 
 youtube-dl ${NV:+--no-progress} ${V:+-q} ${VVV:+-v} \
-	--no-mtime --match-filter !is_live \
+	--no-mtime --match-filter !is_live --no-overwrites --no-post-overwrites \
 	-o "$SAKRAHOME/youtube/${FEEDNAME:-%(uploader)s} - %(title)s.%(ext)s" "$LINK"
 

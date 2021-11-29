@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -eC
 # Downloads YouTube links as m3u files into ~/youtube/ so they can be
 # streamed by a media player (i.e. mpv w/ youtube-dl)
 #
