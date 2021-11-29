@@ -12,6 +12,9 @@ case "$SAKRADIR" in -*) exit 1 ;; esac
 mkdir -p "$SAKRADIR" "$SAKRAHOME"
 cd "$SAKRADIR"
 
+mkdir lock
+trap 'trap - EXIT HUP QUIT TERM INT ABRT; rmdir lock' EXIT HUP QUIT TERM INT ABRT
+
 TAB=$(printf '\t')
 
 unset -v catchup V NV
