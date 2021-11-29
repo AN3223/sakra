@@ -36,7 +36,7 @@ defaultrc() {
 	if [ "$ENCLOSURE" ]; then
 		path=${target##*/}; path=${path%%[?#]*};
 		ext=${path##*.}
-	elif [ "$CONTENT_TYPE" = html ]; then
+	else
 		ext=html
 	fi
 
