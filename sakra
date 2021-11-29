@@ -34,9 +34,8 @@ defaultrc() {
 
 	# Add file extensions when applicable
 	if [ "$ENCLOSURE" ]; then
-		path=${target##*/}
+		path=${target##*/}; path=${path%%[?#]*};
 		ext=${path##*.}
-		ext=${ext%%\?*}; ext=${ext%%\#*}; # Strip URL junk out
 	elif [ "$CONTENT_TYPE" = html ]; then
 		ext=html
 	fi
