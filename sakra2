@@ -13,16 +13,6 @@ case "$SAKRADIR" in -*) exit 1 ;; esac
 mkdir -p "$SAKRADIR" "$SAKRAHOME"
 cd "$SAKRADIR"
 
-if command -v flock > /dev/null 2>&1; then
-	exec 9> lock
-	flock 9
-else
-	while ! mkdir lock; do
-		sleep 1
-	done
-	trap 'trap - EXIT HUP QUIT TERM INT ABRT; rmdir lock' EXIT HUP QUIT TERM INT ABRT
-fi
-
 unset -v catchup NV
 V=0
 while getopts cvh o; do
@@ -41,6 +31,18 @@ case "$V" in
 	2) export VV=1;;
 	3) export VV=1 VVV=1;;
 esac
+
+lock() {
+	if command -v flock > /dev/null 2>&1; then
+		exec 9> "$1"
+		flock 9
+	else
+		while ! mkdir "$1"; do
+			sleep 1
+		done
+		trap 'trap - EXIT HUP QUIT TERM INT ABRT; rmdir "'"$1"'"' EXIT HUP QUIT TERM INT ABRT
+	fi
+}
 
 # this runs in the same context as a user's rc script
 defaultrc() {
@@ -127,6 +129,7 @@ iterate_feeds() {
 		mkdir -p ./state/"$FEEDGROUP"
 		export STATE="./state/$FEEDGROUP/$FEEDID"
 		: >> "$STATE"
+		lock "$STATE.lock"
 
 		if [ "$VV" ]; then
 			echo Working on feed "$FEEDGROUP/${FEEDID:-$feed}" ... >&2
