@@ -15,9 +15,7 @@ cd "$SAKRADIR"
 
 if command -v flock > /dev/null 2>&1; then
 	exec 9> lock
-	while ! flock -n 9; do
-		sleep 1
-	done
+	flock 9
 else
 	while ! mkdir lock; do
 		sleep 1
