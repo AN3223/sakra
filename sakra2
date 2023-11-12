@@ -72,17 +72,22 @@ defaultrc() {
 
 handle_feed() {
 	while IFS= read -r item; do
+		full_item="$item"
 		if [ "$VVV" ]; then
-			echo "$item" >&2
+			echo "$full_item" >&2
 		fi
 
 		unset -v TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE old
 		for field in TIMESTAMP TITLE LINK CONTENT CONTENT_TYPE GUID AUTHOR ENCLOSURE; do
 			eval export "$field="'${item%%"$TAB"*}'
 
-			# skip old entries (XXX: what if there isn't a GUID?)
-			if [ "$field" = GUID ] && grep -Fxqe "$GUID" < "$STATE"; then
-				old=1; break;
+			# skip old entries
+			if [ "$field" = GUID ]; then
+				if [ "$GUID" ] && grep -Fxqe "$GUID" < "$STATE"; then
+					old=1; break;
+				elif grep -Fxqe "$full_item" < "$STATE"; then
+					old=1; break;
+				fi
 			fi
 
 			case "$item" in *"$TAB"*) ;; *) break ;; esac # no more fields = we're done
